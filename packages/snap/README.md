@@ -1,12 +1,17 @@
-# TypeScript Example Snap
+# @cred-protocol/metamask-snap
 
-This snap demonstrates how to develop a snap with TypeScript. It is a simple
-snap that displays a confirmation dialog when the `hello` JSON-RPC method is
-called.
+The Cred Protocol Snap for MetaMask: OFAC sanctions screening and Cred credit
+scores for the addresses you transact with, shown on the confirmation screen,
+plus your own score on a home page.
 
-## Testing
+Install from a dapp:
 
-The snap comes with some basic tests, to demonstrate how to write tests for
-snaps. To test the snap, run `yarn test` in this directory. This will use
-[`@metamask/snaps-jest`](https://github.com/MetaMask/snaps/tree/main/packages/snaps-jest)
-to run the tests in `src/index.test.ts`.
+```js
+await window.ethereum.request({
+  method: 'wallet_requestSnaps',
+  params: { 'npm:@cred-protocol/metamask-snap': {} },
+});
+```
+
+See the [repository README](https://github.com/credprotocol/metamask-snap#readme)
+for how it works, permissions, privacy and development.

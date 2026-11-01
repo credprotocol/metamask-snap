@@ -1,27 +1,31 @@
 {
   "version": "0.1.0",
-  "description": "An example Snap written in TypeScript.",
-  "proposedName": "TypeScript Example",
+  "description": "OFAC sanctions screening and Cred credit scores for the addresses you transact with, plus your own score, inside MetaMask.",
+  "proposedName": "Cred Protocol",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MetaMask/template-snap-monorepo.git"
+    "url": "https://github.com/credprotocol/metamask-snap.git"
   },
   "source": {
-    "shasum": "r7Mf2iZsV0U3aSQIy9eTnY8KIe0Nv90t0q87Cfju4pQ=",
+    "shasum": "Ez42rPRpDXUeD+xbkSBtDjcALNMKlEkLedIS8QFYWIg=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
-        "packageName": "snap",
+        "iconPath": "images/icon.svg",
+        "packageName": "@cred-protocol/metamask-snap",
         "registry": "https://registry.npmjs.org/"
       }
     }
   },
   "initialPermissions": {
-    "snap_dialog": {},
-    "endowment:rpc": {
-      "dapps": true,
-      "snaps": false
-    }
+    "endowment:transaction-insight": {
+      "allowTransactionOrigin": true,
+      "maxRequestTime": 15000
+    },
+    "endowment:page-home": {},
+    "endowment:ethereum-provider": {},
+    "endowment:network-access": {},
+    "snap_manageState": {}
   },
   "platformVersion": "10.3.0",
   "manifestVersion": "0.1"

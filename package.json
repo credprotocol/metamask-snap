@@ -1,18 +1,18 @@
 {
-  "name": "root",
+  "name": "cred-metamask-snap-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "",
-  "homepage": "https://github.com/MetaMask/template-snap-monorepo#readme",
+  "description": "Cred Protocol MetaMask Snap and its companion site",
+  "homepage": "https://github.com/credprotocol/metamask-snap#readme",
   "bugs": {
-    "url": "https://github.com/MetaMask/template-snap-monorepo/issues"
+    "url": "https://github.com/credprotocol/metamask-snap/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MetaMask/template-snap-monorepo.git"
+    "url": "git+https://github.com/credprotocol/metamask-snap.git"
   },
-  "license": "(MIT-0 OR Apache-2.0)",
-  "author": "",
+  "license": "MIT",
+  "author": "Cred Protocol",
   "workspaces": [
     "packages/*"
   ],
@@ -23,7 +23,7 @@
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '**/*.yml' '!.yarnrc.yml' --ignore-path .gitignore --no-error-on-unmatched-pattern",
     "start": "yarn workspaces foreach --parallel --interlaced --verbose run start",
-    "test": "yarn workspace snap run test"
+    "test": "yarn workspace @cred-protocol/metamask-snap run test"
   },
   "resolutions": {
     "cookie": "^0.7.1",
