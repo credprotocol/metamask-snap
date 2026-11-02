@@ -1,6 +1,10 @@
 import type {
   Allowance,
   Auth,
+  ExposureCounterparty,
+  ExposureResult,
+  ExposureRisk,
+  SanctionsMatch,
   SanctionsResult,
   ScoreFactor,
   ScoreRange,
@@ -170,6 +174,23 @@ function parseScore(body: unknown): ScoreResult | null {
 }
 
 /**
+ * Validate a list of sanctions-list matches.
+ *
+ * @param value - The raw `matches` field.
+ * @returns The matches; an empty list for anything that is not a list.
+ */
+function parseMatches(value: unknown): SanctionsMatch[] {
+  return Array.isArray(value)
+    ? value.filter(isRecord).map((match) => ({
+        source: asString(match.source, 'unknown'),
+        entityName:
+          typeof match.entity_name === 'string' ? match.entity_name : null,
+        programs: typeof match.programs === 'string' ? match.programs : null,
+      }))
+    : [];
+}
+
+/**
  * Validate a `/sanctions/screen/{address}` body.
  *
  * @param body - Parsed JSON.
@@ -179,18 +200,81 @@ function parseSanctions(body: unknown): SanctionsResult | null {
   if (!isRecord(body) || typeof body.sanctioned !== 'boolean') {
     return null;
   }
-  const matches = Array.isArray(body.matches)
-    ? body.matches.filter(isRecord).map((match) => ({
-        source: asString(match.source, 'unknown'),
-        entityName:
-          typeof match.entity_name === 'string' ? match.entity_name : null,
-        programs: typeof match.programs === 'string' ? match.programs : null,
-      }))
-    : [];
   return {
     address: asString(body.address),
     sanctioned: body.sanctioned,
-    matches,
+    matches: parseMatches(body.matches),
+  };
+}
+
+const RISKS = new Set<string>([
+  'sanctioned',
+  'funded_by_sanctioned',
+  'exposed',
+  'none',
+]);
+
+/**
+ * The name of the first sanctions-list match, for labelling a counterparty.
+ *
+ * @param matches - Parsed matches.
+ * @returns The entity name, or null.
+ */
+function firstEntityName(matches: SanctionsMatch[]): string | null {
+  return matches.find((match) => match.entityName)?.entityName ?? null;
+}
+
+/**
+ * Validate a `/sanctions/exposure/{address}` body.
+ *
+ * @param body - Parsed JSON.
+ * @returns The exposure result, or null when the body is not one.
+ */
+export function parseExposure(body: unknown): ExposureResult | null {
+  if (
+    !isRecord(body) ||
+    typeof body.sanctioned !== 'boolean' ||
+    typeof body.risk !== 'string' ||
+    !RISKS.has(body.risk) ||
+    !isRecord(body.exposure)
+  ) {
+    return null;
+  }
+  const funding = isRecord(body.funding_source) ? body.funding_source : null;
+  const raw = Array.isArray(body.exposure.sanctioned_counterparties)
+    ? body.exposure.sanctioned_counterparties.filter(isRecord)
+    : [];
+  const sanctionedCounterparties = raw
+    .map(
+      (entry): ExposureCounterparty => ({
+        address: asString(entry.address),
+        entityName: firstEntityName(parseMatches(entry.matches)),
+        direction: asString(entry.direction, 'both'),
+        lastSeen: typeof entry.last_seen === 'string' ? entry.last_seen : null,
+        recent: entry.recent === true,
+      }),
+    )
+    .filter((entry) => entry.address);
+
+  return {
+    address: asString(body.address),
+    sanctioned: body.sanctioned,
+    matches: parseMatches(body.matches),
+    risk: body.risk as ExposureRisk,
+    coverage: asString(body.coverage, 'unavailable'),
+    fundingSource:
+      funding && typeof funding.address === 'string'
+        ? {
+            address: funding.address,
+            sanctioned: funding.sanctioned === true,
+            entityName: firstEntityName(parseMatches(funding.matches)),
+          }
+        : null,
+    counterpartiesChecked:
+      typeof body.exposure.counterparties_checked === 'number'
+        ? body.exposure.counterparties_checked
+        : 0,
+    sanctionedCounterparties,
   };
 }
 
@@ -291,6 +375,25 @@ export async function screenAddress(
   return parsed(
     await request(`/sanctions/screen/${address}`, { auth }),
     parseSanctions,
+  );
+}
+
+/**
+ * OFAC screening of an address, the address that first funded it and
+ * every counterparty of its transfers (3 Cred Units for addresses other
+ * than the token's own). Ethereum mainnet history.
+ *
+ * @param address - An EVM wallet address.
+ * @param auth - API key or snap token.
+ * @returns The exposure result.
+ */
+export async function getExposure(
+  address: string,
+  auth: Auth,
+): Promise<ApiResult<ExposureResult>> {
+  return parsed(
+    await request(`/sanctions/exposure/${address}`, { auth }),
+    parseExposure,
   );
 }
 

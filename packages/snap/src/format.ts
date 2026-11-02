@@ -1,4 +1,4 @@
-import type { SanctionsResult, ScoreResult } from './types';
+import type { ExposureResult, SanctionsResult, ScoreResult } from './types';
 
 /**
  * Human label for a score range as the API spells it.
@@ -55,6 +55,65 @@ export function sanctionsSummary(sanctions: SanctionsResult): string {
     parts.add(match.programs ? `${name} (${match.programs})` : name);
   }
   return [...parts].join(', ');
+}
+
+/**
+ * One line describing a wallet's sanctions exposure beyond its own listing.
+ *
+ * @param exposure - An exposure response.
+ * @returns E.g. "Funded by TORNADO CASH" or "Dealt with 2 sanctioned
+ * addresses, last in Jun 2026"; "None found" when clean; a note when the
+ * history could not be read.
+ */
+export function exposureSummary(exposure: ExposureResult): string {
+  const funding = exposure.fundingSource;
+  if (funding?.sanctioned) {
+    return `Funded by ${funding.entityName ?? shortAddress(funding.address)}`;
+  }
+  const hits = exposure.sanctionedCounterparties;
+  if (hits.length > 0) {
+    const names = [
+      ...new Set(
+        hits.map((hit) => hit.entityName ?? shortAddress(hit.address)),
+      ),
+    ];
+    const who =
+      names.length <= 2
+        ? names.join(' and ')
+        : `${hits.length} sanctioned addresses`;
+    const last = hits
+      .map((hit) => hit.lastSeen)
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1);
+    return last
+      ? `Dealt with ${who}, last ${monthYear(last)}`
+      : `Dealt with ${who}`;
+  }
+  if (exposure.coverage === 'unavailable') {
+    return 'History unavailable right now';
+  }
+  return exposure.coverage === 'partial'
+    ? 'None found in recent history'
+    : 'None found';
+}
+
+/**
+ * "Jun 2026" from an ISO timestamp; the raw string when it will not parse.
+ *
+ * @param iso - An ISO 8601 timestamp.
+ * @returns A short month and year.
+ */
+function monthYear(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 /**
