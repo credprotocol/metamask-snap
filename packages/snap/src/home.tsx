@@ -175,7 +175,7 @@ export function renderHome(view: HomeView) {
 
       {allowance ? (
         <Text size="sm" color="muted">
-          {`${allowance.remaining} of ${allowance.monthlyLimit} free lookups left this month`}
+          {`${allowance.remaining} of ${allowance.monthlyLimit} free Cred Units left this month`}
         </Text>
       ) : null}
       {view.hasApiKey ? (
@@ -187,7 +187,8 @@ export function renderHome(view: HomeView) {
       <Divider />
       <Heading size="sm">API key (optional)</Heading>
       <Text size="sm" color="muted">
-        Transaction insights get 300 free lookups per month. Paste a key from
+        Transaction insights get 300 free Cred Units per month: a wallet costs 4
+        (sanctions exposure 3, score 1), a contract 1. Paste a key from
         app.credprotocol.com for unlimited lookups.
       </Text>
       <Form name="api-key">

@@ -7,7 +7,7 @@
     "url": "https://github.com/credprotocol/metamask-snap.git"
   },
   "source": {
-    "shasum": "Ez42rPRpDXUeD+xbkSBtDjcALNMKlEkLedIS8QFYWIg=",
+    "shasum": "wvmvbhwlicO4AEaCBVqfcxxdsTIkE+mB9umV3xzV7bE=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

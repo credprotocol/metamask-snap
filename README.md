@@ -4,10 +4,12 @@ A [MetaMask Snap](https://metamask.io/snaps/) that puts Cred Protocol's
 on-chain credit data where it matters:
 
 - **Transaction insights.** Before you confirm a transaction, the Snap shows
-  whether the recipient is on an OFAC sanctions list and what its Cred credit
+  whether the recipient is on an OFAC sanctions list, whether it was funded
+  by or has transacted with a sanctioned address, and what its Cred credit
   score is. For ERC-20 `transfer`, `transferFrom` and `approve` calls it looks
-  at the real recipient or spender, not the token contract. A sanctions hit
-  shows as a red banner.
+  at the real recipient or spender, not the token contract. A listed or
+  sanctioned-funded recipient shows as a red banner, a recipient that has
+  dealt with a sanctioned address as a yellow one.
 - **Home page.** Your own Cred score (300–1000), score factors and sanctions
   status, under the Snaps menu.
 
@@ -22,10 +24,13 @@ The Snap talks to one host only, `https://api.credprotocol.com`.
    `personal_sign` it, and exchanges the signature at `/api/v2/wallet/verify`
    with `scope: "snap"` for a 24-hour wallet token. Reading your own wallet's
    data is free and unlimited.
-2. **Transaction insights** look up _other_ addresses
-   (`/api/v2/sanctions/screen/{address}` and `/api/v2/score/address/{address}`).
-   Each wallet token gets **300 free Cred Units per calendar month** for that;
-   one transaction costs 1–2. `GET /api/v2/wallet/allowance` shows the balance.
+2. **Transaction insights** look up _other_ addresses: for a wallet,
+   `/api/v2/sanctions/exposure/{address}` (3 CU: the direct OFAC screen plus
+   the address that first funded it and every counterparty it has transacted
+   with on Ethereum) and `/api/v2/score/address/{address}` (1 CU); for a
+   contract, `/api/v2/sanctions/screen/{address}` (1 CU) only. Each wallet
+   token gets **300 free Cred Units per calendar month** for that, so about
+   75 wallet transactions. `GET /api/v2/wallet/allowance` shows the balance.
 3. **Optional API key.** Paste a key from
    [app.credprotocol.com](https://app.credprotocol.com) on the home page for
    unlimited lookups billed to your Cred Protocol account.

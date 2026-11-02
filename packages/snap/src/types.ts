@@ -33,6 +33,45 @@ export type SanctionsResult = {
   matches: SanctionsMatch[];
 };
 
+export type ExposureRisk =
+  | 'sanctioned'
+  | 'funded_by_sanctioned'
+  | 'exposed'
+  | 'none';
+
+export type ExposureCounterparty = {
+  address: string;
+  entityName: string | null;
+  /** `in`, `out` or `both`, relative to the screened address. */
+  direction: string;
+  lastSeen: string | null;
+  /** Contact within the last 90 days. */
+  recent: boolean;
+};
+
+export type ExposureFunding = {
+  address: string;
+  sanctioned: boolean;
+  entityName: string | null;
+};
+
+/**
+ * `/sanctions/exposure/{address}`: the direct screening plus one hop out,
+ * the address that first funded the wallet and every counterparty it has
+ * transacted with, screened against the same lists.
+ */
+export type ExposureResult = {
+  address: string;
+  sanctioned: boolean;
+  matches: SanctionsMatch[];
+  risk: ExposureRisk;
+  /** `complete`, `partial` or `unavailable` (history could not be read). */
+  coverage: string;
+  fundingSource: ExposureFunding | null;
+  counterpartiesChecked: number;
+  sanctionedCounterparties: ExposureCounterparty[];
+};
+
 export type Allowance = {
   monthlyLimit: number;
   used: number;
@@ -56,6 +95,8 @@ export type CachedInsight = {
   at: number;
   isContract: boolean;
   sanctions?: SanctionsResult | undefined;
+  /** Wallets only: contracts get the direct screen alone. */
+  exposure?: ExposureResult | undefined;
   score?: ScoreResult | undefined;
 };
 

@@ -1,12 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  exposureSummary,
   rangeLabel,
   sanctionsSummary,
   scoreSummary,
   shortAddress,
 } from './format';
 import { utf8ToHex, isAddress } from './hex';
+import type { ExposureResult } from './types';
 
 describe('rangeLabel', () => {
   it('maps the API ranges to labels', () => {
@@ -56,6 +58,89 @@ describe('sanctionsSummary', () => {
         ],
       }),
     ).toBe('TORNADO CASH (CYBER2), ofac_sdn');
+  });
+});
+
+describe('exposureSummary', () => {
+  const base: ExposureResult = {
+    address: '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
+    sanctioned: false,
+    matches: [],
+    risk: 'none',
+    coverage: 'complete',
+    fundingSource: null,
+    counterpartiesChecked: 10,
+    sanctionedCounterparties: [],
+  };
+
+  it('names the sanctioned funder first', () => {
+    expect(
+      exposureSummary({
+        ...base,
+        risk: 'funded_by_sanctioned',
+        fundingSource: {
+          address: '0x8589427373d6d84e98730d7795d8f6f8731fda16',
+          sanctioned: true,
+          entityName: 'TORNADO CASH',
+        },
+      }),
+    ).toBe('Funded by TORNADO CASH');
+  });
+
+  it('lists up to two counterparties by name and dates the last contact', () => {
+    expect(
+      exposureSummary({
+        ...base,
+        risk: 'exposed',
+        sanctionedCounterparties: [
+          {
+            address: '0x8589427373d6d84e98730d7795d8f6f8731fda16',
+            entityName: 'TORNADO CASH',
+            direction: 'out',
+            lastSeen: '2026-06-01T18:40:12+00:00',
+            recent: false,
+          },
+          {
+            address: '0x098b716b8aaf21512996dc57eb0615e2383e2f96',
+            entityName: null,
+            direction: 'in',
+            lastSeen: '2025-01-10T00:00:00+00:00',
+            recent: false,
+          },
+        ],
+      }),
+    ).toBe('Dealt with TORNADO CASH and 0x098b…2f96, last Jun 2026');
+  });
+
+  it('counts when there are more than two', () => {
+    const hit = {
+      address: '0x8589427373d6d84e98730d7795d8f6f8731fda16',
+      entityName: 'A',
+      direction: 'in',
+      lastSeen: null,
+      recent: true,
+    };
+    expect(
+      exposureSummary({
+        ...base,
+        risk: 'exposed',
+        sanctionedCounterparties: [
+          hit,
+          { ...hit, entityName: 'B' },
+          { ...hit, entityName: 'C' },
+        ],
+      }),
+    ).toBe('Dealt with 3 sanctioned addresses');
+  });
+
+  it('says so when nothing was found, qualified by coverage', () => {
+    expect(exposureSummary(base)).toBe('None found');
+    expect(exposureSummary({ ...base, coverage: 'partial' })).toBe(
+      'None found in recent history',
+    );
+    expect(exposureSummary({ ...base, coverage: 'unavailable' })).toBe(
+      'History unavailable right now',
+    );
   });
 });
 
