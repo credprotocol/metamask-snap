@@ -82,4 +82,32 @@ describe('onHomePage', () => {
     expect(content).toContain('"name":"sign-in"');
     expect(content).toContain('Sign in to load');
   });
+
+  it('asks for a wallet sign-in before showing the file when only an API key is held', async () => {
+    // A fresh snapshot and no wallet token: the page makes no network call.
+    const snap = await installSnap({
+      options: {
+        state: {
+          apiKey: 'console-key',
+          sessions: {},
+          cache: {},
+          home: {
+            address: FROM.toLowerCase(),
+            fetchedAt: Date.now(),
+            score: { address: FROM.toLowerCase(), score: 712, range: 'good' },
+          },
+        },
+      },
+    });
+    snap.mockJsonRpc({ method: 'eth_accounts', result: [FROM] });
+
+    const response = await snap.onHomePage();
+    const content = JSON.stringify(response.getInterface().content);
+
+    expect(content).toContain('712');
+    expect(content).toContain('Who looked you up');
+    expect(content).toContain('"name":"file-sign-in"');
+    expect(content).toContain('https://score.credprotocol.com/file');
+    expect(content).not.toContain('inquiries-more');
+  });
 });

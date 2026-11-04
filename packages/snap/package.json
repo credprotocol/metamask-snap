@@ -1,6 +1,6 @@
 {
   "name": "@cred-protocol/metamask-snap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cred Protocol for MetaMask: OFAC sanctions screening and Cred credit scores on the transaction confirmation screen, plus your own score.",
   "repository": {
     "type": "git",

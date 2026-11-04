@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OFAC sanctions screening and Cred credit scores for the addresses you transact with, plus your own score, inside MetaMask.",
   "proposedName": "Cred Protocol",
   "repository": {
@@ -7,7 +7,7 @@
     "url": "https://github.com/credprotocol/metamask-snap.git"
   },
   "source": {
-    "shasum": "wvmvbhwlicO4AEaCBVqfcxxdsTIkE+mB9umV3xzV7bE=",
+    "shasum": "DJJ0d/dFo2REYZOETbT4ljDePMi2hFElWG1Pcxm0Fx0=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

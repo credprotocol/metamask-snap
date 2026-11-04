@@ -1,7 +1,7 @@
 import { getSignInMessage, verifySignature } from './api';
 import { utf8ToHex } from './hex';
 import { getState, updateState, writeState } from './state';
-import type { Auth } from './types';
+import type { Auth, SnapAuth } from './types';
 
 /** Treat a token as expired a minute early so an in-flight call never 401s. */
 const EXPIRY_MARGIN_MS = 60_000;
@@ -19,6 +19,19 @@ export async function getAuth(address: string): Promise<Auth | null> {
   if (state.apiKey) {
     return { kind: 'apiKey', key: state.apiKey };
   }
+  return getSnapAuth(address);
+}
+
+/**
+ * The unexpired wallet token for `address`, ignoring any API key. The
+ * consumer-file routes accept only this: they read your own file, which a
+ * business's key must never open.
+ *
+ * @param address - The connected account.
+ * @returns The wallet token, or null when the user has to sign in.
+ */
+export async function getSnapAuth(address: string): Promise<SnapAuth | null> {
+  const state = await getState();
   const session = state.sessions[address.toLowerCase()];
   if (session && session.expiry - EXPIRY_MARGIN_MS > Date.now()) {
     return {

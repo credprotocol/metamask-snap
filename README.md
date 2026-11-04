@@ -12,6 +12,12 @@ on-chain credit data where it matters:
   dealt with a sanctioned address as a yellow one.
 - **Home page.** Your own Cred score (300–1000), score factors and sanctions
   status, under the Snaps menu.
+- **Your file** (since 0.2.0). On the home page, the main reasons your score
+  is not higher, and who has looked you up: how many times your score or
+  report was delivered to someone in the last 24 months, and the most recent
+  inquiries (date, who, and the purpose they stated), five at a time with
+  "Show more". A link opens your full file, and the dispute form, at
+  [score.credprotocol.com/file](https://score.credprotocol.com/file).
 
 Package: `@cred-protocol/metamask-snap`. Snap ID: `npm:@cred-protocol/metamask-snap`.
 
@@ -34,9 +40,16 @@ The Snap talks to one host only, `https://api.credprotocol.com`.
 3. **Optional API key.** Paste a key from
    [app.credprotocol.com](https://app.credprotocol.com) on the home page for
    unlimited lookups billed to your Cred Protocol account.
+4. **Your file** comes from `GET /api/v2/wallet/file` (key factors) and
+   `GET /api/v2/wallet/inquiries?limit=5` (paged with `before=<next_before>`).
+   Both are free, read only the signed-in wallet, and are never recorded as
+   inquiries themselves. They accept only a wallet token: with just an API
+   key saved, the home page asks you to sign in with the wallet first.
 
 Tokens, the API key and a five-minute lookup cache live in the Snap's
-encrypted state (`snap_manageState`). Nothing else is stored.
+encrypted state (`snap_manageState`). Your file (key factors and inquiries)
+is not stored: it is fetched each time the home page opens and held only in
+the open page's interface context.
 
 ### Permissions
 
@@ -79,12 +92,15 @@ Layout (`packages/snap/src`):
 | `decode.ts`                                   | Picks the address a transaction is about (ERC-20 selector decoding)                                       |
 | `insights.tsx`                                | `onTransaction`                                                                                           |
 | `home.tsx`                                    | `onHomePage` + `onUserInput` (interactive home page)                                                      |
+| `file.ts`                                     | Your file on the home page: key factors, inquiries, "Show more" paging                                    |
 | `state.ts`, `types.ts`, `format.ts`, `hex.ts` | Persistence, response shapes, labels, hex helpers                                                         |
 
 The end-to-end tests use `@metamask/snaps-jest`, which runs the bundle in a
 simulated MetaMask. They cover the paths that need no network (no
 credentials, contract creation, the signed-out home page); the decoding and
-formatting logic is unit-tested directly.
+formatting logic is unit-tested directly. The simulator cannot mock `fetch`,
+so the file sections (and the "Show more" handler) are unit-tested against
+the fakes in `src/test-utils.ts`.
 
 Note: the repo must live at a path without spaces — `@metamask/snaps-utils`
 URL-encodes the path when evaluating the bundle and then cannot find its

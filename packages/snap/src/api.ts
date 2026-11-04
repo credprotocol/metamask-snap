@@ -1,14 +1,19 @@
 import type {
   Allowance,
   Auth,
+  ConsumerFile,
   ExposureCounterparty,
   ExposureResult,
   ExposureRisk,
+  Inquiry,
+  InquiryPage,
+  KeyFactor,
   SanctionsMatch,
   SanctionsResult,
   ScoreFactor,
   ScoreRange,
   ScoreResult,
+  SnapAuth,
 } from './types';
 
 /** Only ever `https:` — the Snap contacts no other host. */
@@ -425,4 +430,133 @@ export async function getScore(
  */
 export async function getAllowance(auth: Auth): Promise<ApiResult<Allowance>> {
   return parsed(await request('/wallet/allowance', { auth }), parseAllowance);
+}
+
+/**
+ * A nullable string field: null for anything that is not a non-empty string.
+ *
+ * @param value - The raw field.
+ * @returns The string, or null.
+ */
+function asOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value ? value : null;
+}
+
+/**
+ * Validate a `score.key_factors` list. Malformed entries are dropped.
+ *
+ * @param value - The raw field.
+ * @returns Up to four key factors, most significant first.
+ */
+export function parseKeyFactors(value: unknown): KeyFactor[] {
+  return Array.isArray(value)
+    ? value
+        .filter(isRecord)
+        .map(
+          (factor): KeyFactor => ({
+            code: asString(factor.code),
+            label: asString(factor.label),
+            description: asString(factor.description),
+          }),
+        )
+        .filter((factor) => factor.label)
+        .slice(0, 4)
+    : [];
+}
+
+/**
+ * Validate a `/wallet/file` body, keeping only what the Snap shows.
+ *
+ * @param body - Parsed JSON.
+ * @returns The file, or null when the body is not one.
+ */
+export function parseConsumerFile(body: unknown): ConsumerFile | null {
+  if (!isRecord(body) || typeof body.address !== 'string') {
+    return null;
+  }
+  const score = isRecord(body.score) ? body.score : null;
+  return {
+    address: body.address,
+    partial: body.partial === true,
+    keyFactors: parseKeyFactors(score?.key_factors),
+  };
+}
+
+/**
+ * Validate a `/wallet/inquiries` body. Malformed entries are dropped.
+ *
+ * @param body - Parsed JSON.
+ * @returns The page, or null when the body is not one.
+ */
+export function parseInquiryPage(body: unknown): InquiryPage | null {
+  if (
+    !isRecord(body) ||
+    typeof body.count !== 'number' ||
+    !Array.isArray(body.inquiries)
+  ) {
+    return null;
+  }
+  const inquiries = body.inquiries
+    .filter(isRecord)
+    .map((item): Inquiry | null => {
+      const requester = isRecord(item.requester) ? item.requester : null;
+      if (typeof item.requested_at !== 'string' || !requester) {
+        return null;
+      }
+      return {
+        requestedAt: item.requested_at,
+        endpoint: asString(item.endpoint),
+        requesterKind: asString(requester.kind, 'unknown'),
+        requesterLabel: asString(requester.label, 'Unknown'),
+        purpose: asOptionalString(item.purpose),
+        requestPurpose: asOptionalString(item.request_purpose),
+        endUser: asOptionalString(item.end_user),
+      };
+    })
+    .filter((item): item is Inquiry => item !== null);
+
+  return {
+    address: asString(body.address),
+    months: typeof body.months === 'number' ? body.months : 24,
+    count: body.count,
+    inquiries,
+    nextBefore: asOptionalString(body.next_before),
+  };
+}
+
+/**
+ * Your own file: score with key factors, history, lending events. Free;
+ * wallet tokens only (API keys get 403), never logged as an inquiry.
+ *
+ * @param auth - A snap token.
+ * @returns The file, narrowed to what the home page shows.
+ */
+export async function getConsumerFile(
+  auth: SnapAuth,
+): Promise<ApiResult<ConsumerFile>> {
+  return parsed(await request('/wallet/file', { auth }), parseConsumerFile);
+}
+
+/**
+ * Who received your score or report in the last 24 months, newest first.
+ * Free; wallet tokens only (API keys get 403), never logged as an inquiry.
+ *
+ * @param auth - A snap token.
+ * @param page - Page size and the previous page's `nextBefore` cursor.
+ * @param page.limit - Inquiries per page (1–200).
+ * @param page.before - Only inquiries older than this ISO timestamp.
+ * @returns One page.
+ */
+export async function getInquiries(
+  auth: SnapAuth,
+  page: { limit: number; before?: string | null | undefined },
+): Promise<ApiResult<InquiryPage>> {
+  const query = new URLSearchParams({ limit: String(page.limit) });
+  if (page.before) {
+    query.set('before', page.before);
+  }
+  return parsed(
+    await request(`/wallet/inquiries?${query.toString()}`, { auth }),
+    parseInquiryPage,
+  );
 }

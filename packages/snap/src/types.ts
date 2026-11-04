@@ -84,6 +84,54 @@ export type Auth =
   | { kind: 'apiKey'; key: string }
   | { kind: 'snap'; token: string; address: string };
 
+/**
+ * A wallet token. The consumer-file routes (`/wallet/file`,
+ * `/wallet/inquiries`) accept nothing else: API keys get 403.
+ */
+export type SnapAuth = Extract<Auth, { kind: 'snap' }>;
+
+/** One ranked reason the score is not higher (`score.key_factors`). */
+export type KeyFactor = {
+  code: string;
+  label: string;
+  description: string;
+};
+
+/** `GET /wallet/file`, narrowed to what the home page shows. */
+export type ConsumerFile = {
+  address: string;
+  /** True when the score could not be read just now. */
+  partial: boolean;
+  keyFactors: KeyFactor[];
+};
+
+/** One delivery of the wallet's score or report to someone. */
+export type Inquiry = {
+  /** ISO 8601, UTC. */
+  requestedAt: string;
+  endpoint: string;
+  requesterKind: string;
+  /** Display-safe label, e.g. `acme.com` or `You`. */
+  requesterLabel: string;
+  /** The purpose the customer declared for their API key. */
+  purpose: string | null;
+  /** Consumer-report deliveries: the permissible purpose stated. */
+  requestPurpose: string | null;
+  /** Consumer-report deliveries: the lender the requester acted for. */
+  endUser: string | null;
+};
+
+/** `GET /wallet/inquiries`: one page, newest first. */
+export type InquiryPage = {
+  address: string;
+  months: number;
+  /** Inquiries in the whole disclosure window, not just this page. */
+  count: number;
+  inquiries: Inquiry[];
+  /** Pass as `before` for the next (older) page; null on the last page. */
+  nextBefore: string | null;
+};
+
 export type Session = {
   token: string;
   /** Unix milliseconds. */
